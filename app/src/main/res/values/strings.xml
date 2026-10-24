@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Y-Pro</string>
+    <string name="accessibility_description">Y-Pro читает карточку заказа в водительском приложении (цену, расстояние и время) и показывает сверху, сколько тенге в час принесёт заказ с учётом комиссий, топлива и пробок. Данные с экрана не покидают телефон.</string>
+</resources>
