@@ -12,6 +12,10 @@ data class Evaluation(
     val rating: Rating,
     /** true, если хотя бы одно время на экране не нашлось и взято из пробок. */
     val usedTrafficEstimate: Boolean,
+    /** false — конечного адреса не было, поездка взята из настроек. */
+    val destinationKnown: Boolean,
+    val priceTenge: Double,
+    val tripKm: Double,
 )
 
 object EarningsCalculator {
@@ -22,15 +26,21 @@ object EarningsCalculator {
     fun evaluate(offer: OrderOffer, costs: CostSettings, speedKmh: Double): Evaluation {
         val pickupKm = offer.pickupKm ?: costs.defaultPickupKm
         val pickupMinutes = offer.pickupMinutes ?: minutesAt(pickupKm, speedKmh)
-        val tripMinutes = offer.tripMinutes ?: minutesAt(offer.tripKm, speedKmh)
+        val tripKm = offer.tripKm ?: costs.assumedTripKm
+        val tripMinutes = offer.tripMinutes ?: minutesAt(tripKm, speedKmh)
         val totalMinutes = (pickupMinutes + tripMinutes + costs.overheadMinutes).coerceAtLeast(MIN_TOTAL_MINUTES)
-        val totalKm = pickupKm + offer.tripKm
+        val totalKm = pickupKm + tripKm
 
+        val price = if (offer.tripKm == null) {
+            maxOf(offer.priceTenge, costs.tariffBase + costs.tariffPerKm * tripKm + costs.tariffPerMinute * tripMinutes)
+        } else {
+            offer.priceTenge
+        }
         val percent = costs.serviceCommissionPct + costs.parkCommissionPct + costs.taxPct
-        val deductions = offer.priceTenge * percent / 100 + costs.fixedFeePerOrder
+        val deductions = price * percent / 100 + costs.fixedFeePerOrder
         val fuel = totalKm * costs.fuelLitersPer100Km / 100 * costs.fuelPricePerLiter
         val carCosts = fuel + totalKm * costs.wearPerKm
-        val net = offer.priceTenge - deductions - carCosts
+        val net = price - deductions - carCosts
         val perHour = net / (totalMinutes / 60)
 
         return Evaluation(
@@ -46,6 +56,9 @@ object EarningsCalculator {
                 else -> Rating.RED
             },
             usedTrafficEstimate = offer.pickupMinutes == null || offer.tripMinutes == null,
+            destinationKnown = offer.tripKm != null,
+            priceTenge = price,
+            tripKm = tripKm,
         )
     }
 

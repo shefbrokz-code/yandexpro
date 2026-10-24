@@ -15,7 +15,7 @@ class OrderParserTest {
         assertEquals(1450.0, offer.priceTenge, 0.0)
         assertEquals(1.2, offer.pickupKm!!, 1e-9)
         assertEquals(4.0, offer.pickupMinutes!!, 0.0)
-        assertEquals(12.5, offer.tripKm, 1e-9)
+        assertEquals(12.5, offer.tripKm!!, 1e-9)
         assertEquals(25.0, offer.tripMinutes!!, 0.0)
     }
 
@@ -23,7 +23,7 @@ class OrderParserTest {
     fun `single distance is the trip`() {
         val offer = OrderParser.parse(listOf("2 100 тг", "18 км"))!!
         assertEquals(2100.0, offer.priceTenge, 0.0)
-        assertEquals(18.0, offer.tripKm, 0.0)
+        assertEquals(18.0, offer.tripKm!!, 0.0)
         assertNull(offer.pickupKm)
         assertNull(offer.tripMinutes)
     }
@@ -32,7 +32,7 @@ class OrderParserTest {
     fun `meters and hours are converted`() {
         val offer = OrderParser.parse(listOf("6 800 ₸", "2 мин 800 м", "1 ч 10 мин 45 км"))!!
         assertEquals(0.8, offer.pickupKm!!, 1e-9)
-        assertEquals(45.0, offer.tripKm, 0.0)
+        assertEquals(45.0, offer.tripKm!!, 0.0)
         assertEquals(70.0, offer.tripMinutes!!, 0.0)
     }
 
@@ -46,8 +46,29 @@ class OrderParserTest {
     fun `non-breaking spaces in price`() {
         val offer = OrderParser.parse(listOf("1\u00A0350\u00A0₸", "2\u202Fмин 7\u00A0км"))!!
         assertEquals(1350.0, offer.priceTenge, 0.0)
-        assertEquals(7.0, offer.tripKm, 0.0)
+        assertEquals(7.0, offer.tripKm!!, 0.0)
         assertEquals(2.0, offer.tripMinutes!!, 0.0)
+    }
+
+    @Test
+    fun `order without destination keeps distance as pickup`() {
+        val offer = OrderParser.parse(
+            listOf("от 700 ₸", "5 мин · 2,1 км", "Без конечной точки", "Принять"),
+            requiredKeywords = listOf("Принять"),
+            noDestinationKeywords = listOf("без конечн"),
+        )!!
+        assertEquals(700.0, offer.priceTenge, 0.0)
+        assertEquals(2.1, offer.pickupKm!!, 1e-9)
+        assertEquals(5.0, offer.pickupMinutes!!, 0.0)
+        assertNull(offer.tripKm)
+        assertNull(offer.tripMinutes)
+    }
+
+    @Test
+    fun `order without destination may have no distance at all`() {
+        val offer = OrderParser.parse(listOf("800 ₸", "Без адреса"), noDestinationKeywords = listOf("без адреса"))!!
+        assertNull(offer.pickupKm)
+        assertNull(offer.tripKm)
     }
 
     @Test

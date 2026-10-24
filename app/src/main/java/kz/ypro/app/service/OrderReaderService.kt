@@ -51,7 +51,7 @@ class OrderReaderService : AccessibilityService() {
         val texts = ScreenText.collect(root)
         if (settings.debugCapture()) saveDump(texts)
 
-        val offer = OrderParser.parse(texts, settings.offerKeywords())
+        val offer = OrderParser.parse(texts, settings.offerKeywords(), settings.noDestinationKeywords())
         if (offer == null) {
             if (shownOffer != null) {
                 banner.hide()

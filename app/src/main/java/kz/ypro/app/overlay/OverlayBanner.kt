@@ -51,10 +51,16 @@ class OverlayBanner(private val service: AccessibilityService) {
 
     private fun format(e: Evaluation): String {
         val estimate = if (e.usedTrafficEstimate) " (пробки)" else ""
-        return "${numbers.format(e.perHourTenge.roundToInt())} ₸/ч\n" +
+        val approx = if (e.destinationKnown) "" else "≈ "
+        val text = "$approx${numbers.format(e.perHourTenge.roundToInt())} ₸/ч\n" +
             "чистыми ${numbers.format(e.netTenge.roundToInt())} ₸ · " +
             "${e.totalMinutes.roundToInt()} мин$estimate · " +
             String.format(RU_KZ, "%.1f км", e.totalKm)
+        return if (e.destinationKnown) {
+            text
+        } else {
+            text + "\nадрес не указан · считаю " + String.format(RU_KZ, "%.1f км", e.tripKm)
+        }
     }
 
     private fun createView() = TextView(service).apply {

@@ -45,6 +45,25 @@ class EarningsCalculatorTest {
     }
 
     @Test
+    fun `unknown destination uses assumed trip and tariff`() {
+        val settings = costs.copy(assumedTripKm = 6.0, tariffBase = 400.0, tariffPerKm = 100.0, tariffPerMinute = 20.0)
+        val offer = OrderOffer(priceTenge = 700.0, tripKm = null, pickupKm = 1.0, pickupMinutes = 3.0)
+        val result = EarningsCalculator.evaluate(offer, settings, speedKmh = 24.0)
+
+        // 6 км при 24 км/ч = 15 мин; по тарифу 400 + 600 + 300 = 1300 > 700 с экрана.
+        assertEquals(1300.0, result.priceTenge, 1e-9)
+        assertEquals(6.0, result.tripKm, 0.0)
+        assertEquals(18.0, result.totalMinutes, 1e-9)
+        assertFalse(result.destinationKnown)
+    }
+
+    @Test
+    fun `unknown destination without tariff keeps screen price`() {
+        val offer = OrderOffer(priceTenge = 700.0, tripKm = null)
+        assertEquals(700.0, EarningsCalculator.evaluate(offer, costs, speedKmh = 24.0).priceTenge, 0.0)
+    }
+
+    @Test
     fun `heavy traffic turns order red`() {
         val offer = OrderOffer(priceTenge = 1500.0, pickupKm = 1.0, tripKm = 9.0)
         assertEquals(Rating.GREEN, EarningsCalculator.evaluate(offer, costs, speedKmh = 40.0).rating)

@@ -6,6 +6,9 @@ package kz.ypro.core
  * Расстояния и время берутся в порядке появления на экране: если их два,
  * первое относится к подаче, второе — к поездке. Если расстояние одно,
  * считаем его расстоянием поездки.
+ *
+ * Если на экране есть признак заказа без конечного адреса, всё найденное
+ * относится к подаче, а поездка остаётся неизвестной.
  */
 object OrderParser {
 
@@ -35,9 +38,14 @@ object OrderParser {
      * @param texts тексты элементов экрана в порядке обхода.
      * @param requiredKeywords экран считается заказом, только если на нём есть
      *   хотя бы одно из этих слов (например, кнопка «Принять»). Пустой список — без проверки.
+     * @param noDestinationKeywords слова, по которым видно, что конечный адрес не указан.
      * @return заказ или null, если на экране нет предложения заказа.
      */
-    fun parse(texts: List<String>, requiredKeywords: List<String> = emptyList()): OrderOffer? {
+    fun parse(
+        texts: List<String>,
+        requiredKeywords: List<String> = emptyList(),
+        noDestinationKeywords: List<String> = emptyList(),
+    ): OrderOffer? {
         val screen = texts.joinToString("\n")
         if (requiredKeywords.isNotEmpty() && requiredKeywords.none { screen.contains(it, ignoreCase = true) }) {
             return null
@@ -52,7 +60,6 @@ object OrderParser {
             val value = match.groupValues[1].replace(',', '.').toDouble()
             if (match.groupValues[2].equals("м", ignoreCase = true)) value / 1000 else value
         }.toList()
-        if (distances.isEmpty()) return null
 
         val durations = durationRegex.findAll(screen).map { match ->
             val (hours, minutes, onlyHours) = match.destructured
@@ -61,6 +68,16 @@ object OrderParser {
                 else -> (hours.toDoubleOrNull() ?: 0.0) * 60 + minutes.toDouble()
             }
         }.toList()
+
+        if (noDestinationKeywords.any { screen.contains(it, ignoreCase = true) }) {
+            return OrderOffer(
+                priceTenge = price,
+                tripKm = null,
+                pickupKm = distances.firstOrNull(),
+                pickupMinutes = durations.firstOrNull(),
+            )
+        }
+        if (distances.isEmpty()) return null
 
         return if (distances.size >= 2) {
             OrderOffer(

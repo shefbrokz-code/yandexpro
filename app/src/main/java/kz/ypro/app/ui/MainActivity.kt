@@ -81,6 +81,7 @@ private fun MainScreen(store: SettingsStore) {
     val fields = remember { CostField.entries.map { it to formatNumber(costs.valueOf(it)) }.toMutableStateMap() }
     var packages by remember { mutableStateOf(store.targetPackages().joinToString(", ")) }
     var keywords by remember { mutableStateOf(store.offerKeywords().joinToString(", ")) }
+    var noDestination by remember { mutableStateOf(store.noDestinationKeywords().joinToString(", ")) }
     var debugCapture by remember { mutableStateOf(store.debugCapture()) }
 
     Column(
@@ -127,6 +128,12 @@ private fun MainScreen(store: SettingsStore) {
             label = { Text("Слова на экране заказа") },
             modifier = Modifier.fillMaxWidth(),
         )
+        OutlinedTextField(
+            value = noDestination,
+            onValueChange = { noDestination = it },
+            label = { Text("Признаки заказа без адреса") },
+            modifier = Modifier.fillMaxWidth(),
+        )
 
         Button(
             onClick = {
@@ -135,7 +142,7 @@ private fun MainScreen(store: SettingsStore) {
                     if (value == null) settings else settings.with(field, value)
                 }
                 store.saveCostSettings(updated)
-                store.saveScreenRules(packages, keywords)
+                store.saveScreenRules(packages, keywords, noDestination)
                 Toast.makeText(context, "Сохранено. Список приложений применится после перезапуска сервиса.", Toast.LENGTH_LONG).show()
             },
             modifier = Modifier.fillMaxWidth(),
